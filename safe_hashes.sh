@@ -245,7 +245,6 @@ print_hash_info() {
     local domain_hash=$1
     local message_hash=$2
     local safe_tx_hash=$3
-    # Convert hex to original format using only bash tools
     local binary_literal=$(
         echo -n "${safe_tx_hash#0x}" | xxd -r -p | while read -N1 c; do
             if [[ $c =~ [[:print:]] ]] && [[ ! $c =~ [[:space:]] ]]; then
