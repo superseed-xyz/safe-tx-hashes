@@ -17,6 +17,7 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
   - [macOS Users: Upgrading Bash](#macos-users-upgrading-bash)
 - [Safe Transaction Hashes](#safe-transaction-hashes)
 - [Safe Message Hashes](#safe-message-hashes)
+- [Initialize Safe Transaction Hashes and raw mode](#initialize-safe-transaction-hashes-and-raw-mode)
 - [Trust Assumptions](#trust-assumptions)
 - [Community-Maintained User Interface Implementations](#community-maintained-user-interface-implementations)
 
@@ -235,12 +236,64 @@ Message hash: 0xA5D2F507A16279357446768DB4BD47A03BCA0B6ACAC4632A4C2C96AF20D6F6E5
 Safe message hash: 0x1866b559f56261ada63528391b93a1fe8e2e33baf7cace94fc6b42202d16ea08
 ```
 
+## Initialize Safe Transaction Hashes and raw mode
+
+And remove trust assumptions on the [Safe transaction service API](https://docs.safe.global/core-api/transaction-service-overview)!
+
+You can optionally, run this script using the `raw` subcommand. 
+
+To calculate the Safe transaction hashes for a transaction that hasn't been initialized yet, or where you don't want to trust the safe transaction API, you can specify all the parameters. An example:
+
+```console
+./safe_hashes.sh raw --data 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001 --address 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F --network sepolia --nonce 6 --to 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+```
+
+You can run `./safe_hashes.sh raw --help` to see the available options.
+
+The [script](./safe_hashes.sh) will output the domain, message, and Safe transaction hashes, allowing you to easily verify them against the values displayed on your Ledger hardware wallet screen:
+
+```console
+===================================
+= Selected Network Configurations =
+===================================
+
+Network: sepolia
+Chain ID: 11155111
+
+========================================
+= Transaction Data and Computed Hashes =
+========================================
+
+Transaction Data
+Multisig address: 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F
+To: 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+Value: 0
+Data: 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001
+Encoded message: 0xbb8310d486368db6bd6f849402fdd73ad53d316b5a4b2644ad6efe0f941286d80000000000000000000000007b79995e5f793a07bc00c21412e50ecae098e7f900000000000000000000000000000000000000000000000000000000000000001c62604b0ed9a9ec0e55efe8fb203b3029e147d994854cf0dd8a9fcf5b240d600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006
+jq: error (at <stdin>:1): Cannot index string with string "method"
+jq: error (at <stdin>:1): Cannot index string with string "parameters"
+Method: 
+Parameters: 
+
+Hashes
+Domain hash: 0xE411DFD2D178C853945BE30E1CEFBE090E56900073377BA8B8D0B47BAEC31EDB
+Message hash: 0x4BBDE73F23B1792683730E7AE534A56A0EFAA8B7B467FF605202763CE2124DBC
+Safe transaction hash: 0x213be037275c94449a28b4edead76b0d63c7e12b52257f9d5686d98b9a1a5ff4
+```
+
+You can run this example to see the output.
+
+```console
+./safe_hashes.sh raw --data 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001 --address 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F --network sepolia --nonce 6 --to 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+```
+
 ## Trust Assumptions
 
 1. You trust my [script](./safe_hashes.sh) 😃.
 2. You trust Linux.
 3. You trust [Foundry](https://github.com/foundry-rs/foundry).
 4. You trust the [Safe transaction service API](https://docs.safe.global/core-api/transaction-service-overview).
+   1. Unless using [raw mode](#initialize-safe-transaction-hashes-and-raw-mode).
 5. You trust [Ledger's secure screen](https://www.ledger.com/academy/topics/ledgersolutions/ledger-wallets-secure-screen-security-model).
 
 ## Community-Maintained User Interface Implementations
