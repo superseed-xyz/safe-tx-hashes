@@ -245,6 +245,19 @@ print_hash_info() {
     local domain_hash=$1
     local message_hash=$2
     local safe_tx_hash=$3
+    # Convert hex to original format using only bash tools
+    local binary_literal=$(
+        echo -n "${safe_tx_hash#0x}" | xxd -r -p | while read -N1 c; do
+            if [[ $c =~ [[:print:]] ]] && [[ ! $c =~ [[:space:]] ]]; then
+                printf "%s" "$c"
+            else
+                printf "\\x%02x" "'$c" 2>/dev/null
+            fi
+        done
+    )
+
+    print_header "Legacy Ledger Format"
+    print_field "Binary string literal" "$binary_literal"
 
     print_header "Hashes"
     print_field "Domain hash" "$(format_hash "$domain_hash")"
