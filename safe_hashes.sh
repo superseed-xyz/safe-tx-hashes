@@ -134,6 +134,7 @@ usage() {
 Usage: $0 [--help] [--list-networks]
        --network <network> --address <address> --nonce <nonce>
        --message <file>
+        $0 [raw] --network <network> --address <address> --nonce <nonce> [OPTIONS]
 
 Options:
   --help              Display this help message
@@ -143,11 +144,25 @@ Options:
   --nonce <nonce>     Specify the transaction nonce (required for transaction hashes)
   --message <file>    Specify the message file (required for off-chain message hashes)
 
+Options for raw sub command:
+  --value             Transaction value in wei (default: 0)
+  --data             Transaction data (default: 0x)
+  --operation        Operation type (default: 0)
+  --safe-tx-gas      SafeTxGas (default: 0)
+  --base-gas         BaseGas (default: 0)
+  --gas-price        GasPrice (default: 0)
+  --gas-token        Gas token address (default: 0x0000...0000)
+  --refund-receiver  Refund receiver address (default: 0x0000...0000)
+
 Example for transaction hashes:
   $0 --network ethereum --address 0x1234...5678 --nonce 42
 
 Example for off-chain message hashes:
   $0 --network ethereum --address 0x1234...5678 --message message.txt
+
+Example for raw transaction hash calculation:
+  $0 raw --network ethereum --address 0x1234...5678 --to 0x9876...5432 --value 1000000000000000000 --nonce 42"
+
 EOF
     exit 1
 }
@@ -505,6 +520,13 @@ calculate_offchain_message_hashes() {
 calculate_safe_hashes() {
     local network="" address="" nonce="" message_file=""
 
+    # Check for raw command first
+    if [[ "$1" == "raw" ]]; then
+        shift
+        handle_raw_transaction "$@"
+        return
+    fi
+
     # Parse the command line arguments.
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -623,6 +645,73 @@ EOF
         "$refund_receiver" \
         "$nonce" \
         "$data_decoded" \
+        "$version"
+}
+# Utility function to handle raw transaction hash calculation
+handle_raw_transaction() {
+    local network="" address="" nonce=""
+    local raw_to="" raw_value="0" raw_data="0x" raw_operation="0"
+    local raw_safe_tx_gas="0" raw_base_gas="0" raw_gas_price="0"
+    local raw_gas_token="0x0000000000000000000000000000000000000000"
+    local raw_refund_receiver="0x0000000000000000000000000000000000000000"
+
+    # Parse raw command arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --network) network="$2"; shift 2 ;;
+            --address) address="$2"; shift 2 ;;
+            --to) raw_to="$2"; shift 2 ;;
+            --value) raw_value="$2"; shift 2 ;;
+            --data) raw_data="$2"; shift 2 ;;
+            --operation) raw_operation="$2"; shift 2 ;;
+            --safe-tx-gas) raw_safe_tx_gas="$2"; shift 2 ;;
+            --base-gas) raw_base_gas="$2"; shift 2 ;;
+            --gas-price) raw_gas_price="$2"; shift 2 ;;
+            --gas-token) raw_gas_token="$2"; shift 2 ;;
+            --refund-receiver) raw_refund_receiver="$2"; shift 2 ;;
+            --nonce) nonce="$2"; shift 2 ;;
+            *) echo "Unknown option for raw command: $1" >&2; usage ;;
+        esac
+    done
+
+    # Validate required parameters
+    if [[ -z "$network" || -z "$address" || -z "$raw_to" || -z "$nonce" ]]; then
+        echo -e "${BOLD}${RED}Error: network, address, to, and nonce are required for raw command${RESET}" >&2
+        usage
+    fi
+
+    # Validate addresses
+    validate_address "$raw_to"
+    [[ "$raw_gas_token" != "0x0000000000000000000000000000000000000000" ]] && validate_address "$raw_gas_token"
+    [[ "$raw_refund_receiver" != "0x0000000000000000000000000000000000000000" ]] && validate_address "$raw_refund_receiver"
+
+    # Get chain ID and version
+    local chain_id=$(get_chain_id "$network")
+    local api_url=$(get_api_url "$network")
+    local version=$(curl -sf "${api_url}/api/v1/safes/${address}/" | jq -r ".version // \"1.3.0\"")
+
+    # Calculate and display the hashes
+    echo "==================================="
+    echo "= Selected Network Configurations ="
+    echo -e "===================================\n"
+    print_field "Network" "$network"
+    print_field "Chain ID" "$chain_id" true
+    echo "========================================"
+    echo "= Transaction Data and Computed Hashes ="
+    echo "========================================"
+    calculate_hashes "$chain_id" \
+        "$address" \
+        "$raw_to" \
+        "$raw_value" \
+        "$raw_data" \
+        "$raw_operation" \
+        "$raw_safe_tx_gas" \
+        "$raw_base_gas" \
+        "$raw_gas_price" \
+        "$raw_gas_token" \
+        "$raw_refund_receiver" \
+        "$nonce" \
+        "\"0x\"" \
         "$version"
 }
 
