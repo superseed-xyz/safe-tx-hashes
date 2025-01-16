@@ -1,3 +1,5 @@
+*Original work from the [pcaversaccio/safe-tx-hashes-util](https://github.com/pcaversaccio/safe-tx-hashes-util) repo. This has been forked from there.*
+
 # Safe Multisig Transaction Hashes <!-- omit from toc -->
 
 ```console
@@ -12,14 +14,30 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
 > [!IMPORTANT]
 > All Safe multisig versions starting from `0.1.0` and newer are supported.
 
-- [Supported Networks](#supported-networks)
-- [Usage](#usage)
-  - [macOS Users: Upgrading Bash](#macos-users-upgrading-bash)
-- [Safe Transaction Hashes](#safe-transaction-hashes)
-- [Safe Message Hashes](#safe-message-hashes)
-- [Initialize Safe Transaction Hashes and raw mode](#initialize-safe-transaction-hashes-and-raw-mode)
+- [About](#about)
+  - [Differences from the Original Repo](#differences-from-the-original-repo)
+  - [Supported Networks](#supported-networks)
+- [Getting Started](#getting-started)
+  - [Requirements](#requirements)
+    - [macOS Users: Upgrading Bash](#macos-users-upgrading-bash)
+  - [Quickstart](#quickstart)
+    - [Examples to try](#examples-to-try)
+- [Usage - Safe API Transaction Hash Verification](#usage---safe-api-transaction-hash-verification)
+  - [Already Initialized Transactions](#already-initialized-transactions)
+  - [Not Initialized Transactions](#not-initialized-transactions)
+- [Usage - Offline](#usage---offline)
+  - [Safe Transaction Hashes](#safe-transaction-hashes)
+  - [Safe Message Hashes](#safe-message-hashes)
 - [Trust Assumptions](#trust-assumptions)
 - [Community-Maintained User Interface Implementations](#community-maintained-user-interface-implementations)
+- [Acknowledgements](#acknowledgements)
+
+# About
+
+## Differences from the Original Repo
+1. Support for not relying on the Safe API
+2. Support for using "raw" calldata to verify transaction hashes
+3. Support for using the Safe API for verifying transaction hashes before signing (using the `untrusted` flag)
 
 ## Supported Networks
 
@@ -45,43 +63,16 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
 - X Layer (identifier: `xlayer`, chain ID: `195`)
 - ZKsync Era (identifier: `zksync`, chain ID: `324`)
 
-## Usage
+# Getting Started
 
-> [!NOTE]
-> Ensure that [`cast`](https://github.com/foundry-rs/foundry/tree/master/crates/cast) and [`chisel`](https://github.com/foundry-rs/foundry/tree/master/crates/chisel) are installed locally. For installation instructions, refer to this [guide](https://book.getfoundry.sh/getting-started/installation).
+## Requirements
 
-> [!TIP]
-> For macOS users, please refer to the [macOS Users: Upgrading Bash](#macos-users-upgrading-bash) section.
+- [foundry (`cast` and `chisel` in particular)](https://getfoundry.sh/)
+  - You'll know you did it right if you can run `cast --version` and you see a response like `cast 0.3.0 (41c6653 2025-01-15T00:25:27.680061000Z`
+- [bash](https://www.gnu.org/software/bash/)
+  - You'll know you have it if you run `bash --version` and see a response like `GNU bash, version 5....`
 
-```console
-./safe_hashes.sh [--help] [--list-networks] --network <network> --address <address> --nonce <nonce> --message <file>
-```
-
-**Options:**
-
-- `--help`: Display this help message.
-- `--list-networks`: List all supported networks and their chain IDs.
-- `--network <network>`: Specify the network (e.g., `ethereum`, `polygon`).
-- `--address <address>`: Specify the Safe multisig address.
-- `--nonce <nonce>`: Specify the transaction nonce (required for transaction hashes).
-- `--message <file>`: Specify the message file (required for off-chain message hashes).
-
-Before you invoke the [script](./safe_hashes.sh), make it executable:
-
-```console
-chmod +x safe_hashes.sh
-```
-
-> [!TIP]
-> The [script](./safe_hashes.sh) is already set as _executable_ in the repository, so you can run it immediately after cloning or pulling the repository without needing to change permissions.
-
-To enable _debug mode_, set the `DEBUG` environment variable to `true` before running the [script](./safe_hashes.sh):
-
-```console
-DEBUG=true ./safe_hashes.sh ...
-```
-
-This will print each command before it is executed, which is helpful when troubleshooting.
+*If you're using the Safe API features, you'll also need to be connected to the internet*
 
 ### macOS Users: Upgrading Bash
 
@@ -117,7 +108,50 @@ You can verify your Bash version after the installation:
 bash --version
 ```
 
-## Safe Transaction Hashes
+## Quickstart
+
+```console
+./safe_hashes.sh [--help] [--list-networks] --network <network> --address <address> --nonce <nonce> --message <file>
+```
+
+> [!TIP]
+> The [script](./safe_hashes.sh) is already set as _executable_ in the repository, so you can run it immediately after cloning or pulling the repository without needing to change permissions.
+
+To enable _debug mode_, set the `DEBUG` environment variable to `true` before running the [script](./safe_hashes.sh):
+
+```console
+DEBUG=true ./safe_hashes.sh ...
+```
+
+This will print each command before it is executed, which is helpful when troubleshooting.
+
+### Examples to try
+
+Go ahead and run these!
+
+- Safe API: Already Initialized Transaction
+```console
+./safe_hashes.sh --network arbitrum --address 0x111CEEee040739fD91D29C34C33E6B3E112F2177 --nonce 234
+```
+
+- Safe API: Not Initialized Transaction
+```console
+./safe_hashes.sh --network sepolia --address 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F --nonce 7 --untrusted
+```
+
+- Offline Mode: Transaction Hash
+```console
+./safe_hashes.sh --offline --data 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001 --address 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F --network sepolia --nonce 6 --to 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+```
+
+- Offline Mode: Message Hash
+```console
+./safe_hashes.sh --network sepolia --address 0x657ff0D4eC65D82b2bC1247b0a558bcd2f80A0f1 --message message-example.txt --offline
+```
+
+# Usage - Safe API Transaction Hash Verification
+
+## Already Initialized Transactions
 
 To calculate the Safe transaction hashes for a specific transaction, you need to specify the `network`, `address`, and `nonce` parameters. An example:
 
@@ -174,6 +208,63 @@ To list all supported networks:
 ```console
 ./safe_hashes.sh --list-networks
 ```
+
+## Not Initialized Transactions
+
+For transactions that have not been initialized yet, the steps are a little different. 
+
+# Usage - Offline 
+
+When passing the `--offline` flag.
+
+## Safe Transaction Hashes
+
+We can remove trust assumptions on the [Safe transaction service API](https://docs.safe.global/core-api/transaction-service-overview)!
+
+You can optionally, run this script using the `--offline` subcommand. 
+
+To calculate the Safe transaction hashes for a transaction that hasn't been initialized yet, or where you don't want to trust the safe transaction API, you can specify all the parameters. An example:
+
+```console
+./safe_hashes.sh raw --data 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001 --address 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F --network sepolia --nonce 6 --to 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+```
+
+You can run `./safe_hashes.sh raw --help` to see the available options.
+
+The [script](./safe_hashes.sh) will output the domain, message, and Safe transaction hashes, allowing you to easily verify them against the values displayed on your Ledger hardware wallet screen:
+
+```console
+===================================
+= Selected Network Configurations =
+===================================
+
+Network: sepolia
+Chain ID: 11155111
+
+========================================
+= Transaction Data and Computed Hashes =
+========================================
+
+Transaction Data
+Multisig address: 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F
+To: 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+Value: 0
+Data: 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001
+Encoded message: 0xbb8310d486368db6bd6f849402fdd73ad53d316b5a4b2644ad6efe0f941286d80000000000000000000000007b79995e5f793a07bc00c21412e50ecae098e7f900000000000000000000000000000000000000000000000000000000000000001c62604b0ed9a9ec0e55efe8fb203b3029e147d994854cf0dd8a9fcf5b240d600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006
+Skipping decoded data, since raw data was passed
+
+Hashes
+Domain hash: 0xE411DFD2D178C853945BE30E1CEFBE090E56900073377BA8B8D0B47BAEC31EDB
+Message hash: 0x4BBDE73F23B1792683730E7AE534A56A0EFAA8B7B467FF605202763CE2124DBC
+Safe transaction hash: 0x213be037275c94449a28b4edead76b0d63c7e12b52257f9d5686d98b9a1a5ff4
+```
+
+You can run this example to see the output.
+
+```console
+./safe_hashes.sh --offline --data 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001 --address 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F --network sepolia --nonce 6 --to 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+```
+
 
 ## Safe Message Hashes
 
@@ -236,67 +327,23 @@ Message hash: 0xA5D2F507A16279357446768DB4BD47A03BCA0B6ACAC4632A4C2C96AF20D6F6E5
 Safe message hash: 0x1866b559f56261ada63528391b93a1fe8e2e33baf7cace94fc6b42202d16ea08
 ```
 
-## Initialize Safe Transaction Hashes and raw mode
+> [!NOTE]
+> If you do not pass `--offline` for this, the script will attempt to get the correct Safe version from the API. If you want this to be 100% offline, be sure to pass the `--offline` flag!
 
-And remove trust assumptions on the [Safe transaction service API](https://docs.safe.global/core-api/transaction-service-overview)!
-
-You can optionally, run this script using the `raw` subcommand. 
-
-To calculate the Safe transaction hashes for a transaction that hasn't been initialized yet, or where you don't want to trust the safe transaction API, you can specify all the parameters. An example:
-
-```console
-./safe_hashes.sh raw --data 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001 --address 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F --network sepolia --nonce 6 --to 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
-```
-
-You can run `./safe_hashes.sh raw --help` to see the available options.
-
-The [script](./safe_hashes.sh) will output the domain, message, and Safe transaction hashes, allowing you to easily verify them against the values displayed on your Ledger hardware wallet screen:
-
-```console
-===================================
-= Selected Network Configurations =
-===================================
-
-Network: sepolia
-Chain ID: 11155111
-
-========================================
-= Transaction Data and Computed Hashes =
-========================================
-
-Transaction Data
-Multisig address: 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F
-To: 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
-Value: 0
-Data: 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001
-Encoded message: 0xbb8310d486368db6bd6f849402fdd73ad53d316b5a4b2644ad6efe0f941286d80000000000000000000000007b79995e5f793a07bc00c21412e50ecae098e7f900000000000000000000000000000000000000000000000000000000000000001c62604b0ed9a9ec0e55efe8fb203b3029e147d994854cf0dd8a9fcf5b240d600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006
-jq: error (at <stdin>:1): Cannot index string with string "method"
-jq: error (at <stdin>:1): Cannot index string with string "parameters"
-Method: 
-Parameters: 
-
-Hashes
-Domain hash: 0xE411DFD2D178C853945BE30E1CEFBE090E56900073377BA8B8D0B47BAEC31EDB
-Message hash: 0x4BBDE73F23B1792683730E7AE534A56A0EFAA8B7B467FF605202763CE2124DBC
-Safe transaction hash: 0x213be037275c94449a28b4edead76b0d63c7e12b52257f9d5686d98b9a1a5ff4
-```
-
-You can run this example to see the output.
-
-```console
-./safe_hashes.sh raw --data 0x095ea7b3000000000000000000000000fe2f653f6579de62aaf8b186e618887d03fa31260000000000000000000000000000000000000000000000000000000000000001 --address 0x86D46EcD553d25da0E3b96A9a1B442ac72fa9e9F --network sepolia --nonce 6 --to 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
-```
-
-## Trust Assumptions
+# Trust Assumptions 
 
 1. You trust my [script](./safe_hashes.sh) 😃.
 2. You trust Linux.
 3. You trust [Foundry](https://github.com/foundry-rs/foundry).
 4. You trust the [Safe transaction service API](https://docs.safe.global/core-api/transaction-service-overview).
-   1. Unless using [raw mode](#initialize-safe-transaction-hashes-and-raw-mode).
-5. You trust [Ledger's secure screen](https://www.ledger.com/academy/topics/ledgersolutions/ledger-wallets-secure-screen-security-model).
+   1. Unless using [offline mode](#usage---offline)
+5. You trust your hardware wallet's screen.
+   1. [Trezor](https://trezor.io/)
+   2. [Keystone](https://keyst.one/)
+   3. [Cypherock](https://www.cypherock.com/)
+   4. [Ledger](https://www.ledger.com/academy/topics/ledgersolutions/ledger-wallets-secure-screen-security-model)
 
-## Community-Maintained User Interface Implementations
+# Community-Maintained User Interface Implementations
 
 > [!IMPORTANT]
 > Please be aware that user interface implementations may introduce additional trust assumptions, such as relying on `npm` dependencies that have not undergone thorough review. Always verify and cross-reference with the main [script](./safe_hashes.sh).
@@ -305,4 +352,6 @@ You can run this example to see the output.
   - Code: [`josepchetrit12/safe-tx-hashes-util`](https://github.com/josepchetrit12/safe-tx-hashes-util)
   - Authors: [`josepchetrit12`](https://github.com/josepchetrit12), [`xaler5`](https://github.com/xaler5)
 
-[^1]: While it is theoretically possible to query transactions prior to the first signature by setting `untrusted=false` in the [API](https://docs.safe.global/core-api/transaction-service-reference/mainnet#List-a-Safe's-Multisig-Transactions) query — for example, using a query like `https://safe-transaction-arbitrum.safe.global/api/v1/safes/0xB24A3AA250E209bC95A4a9afFDF10c6D099B3d34/multisig-transactions/?trusted=false&nonce=4` — this capability is not implemented in the main [script](https://github.com/pcaversaccio/safe-tx-hashes-util/blob/main/safe_hashes.sh). This decision avoids potential confusion caused by unsigned transactions in the queue, especially when multiple transactions share the same nonce, making it unclear which one to act upon. If this feature aligns with your needs, feel free to fork the [script](https://github.com/pcaversaccio/safe-tx-hashes-util/blob/main/safe_hashes.sh) and modify it as necessary.
+# Acknowledgements
+
+- [pcaversaccio](https://github.com/pcaversaccio)

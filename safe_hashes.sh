@@ -132,9 +132,9 @@ declare -A -r CHAIN_IDS=(
 usage() {
     cat <<EOF
 Usage: $0 [--help] [--list-networks]
-       --network <network> --address <address> --nonce <nonce>
-       --message <file>
-        $0 [raw] --network <network> --address <address> --nonce <nonce> [OPTIONS]
+       --network <network> --address <address> --nonce <nonce> [--untrusted]
+       --message <file> 
+       $0 --offline --network <network> --address <address> --nonce <nonce> [OPTIONS]
 
 Options:
   --help              Display this help message
@@ -143,9 +143,12 @@ Options:
   --address <address> Specify the Safe multisig address (required)
   --nonce <nonce>     Specify the transaction nonce (required for transaction hashes)
   --message <file>    Specify the message file (required for off-chain message hashes)
+  --untrusted        Use untrusted endpoint (adds trusted=false parameter to API calls)
+  --offline          Calculate transaction hash offline with custom parameters
 
-Options for raw sub command:
-  --value             Transaction value in wei (default: 0)
+Additional options for offline mode:
+  --to               Target address (required in offline mode)
+  --value            Transaction value in wei (default: 0)
   --data             Transaction data (default: 0x)
   --operation        Operation type (default: 0)
   --safe-tx-gas      SafeTxGas (default: 0)
@@ -153,20 +156,25 @@ Options for raw sub command:
   --gas-price        GasPrice (default: 0)
   --gas-token        Gas token address (default: 0x0000...0000)
   --refund-receiver  Refund receiver address (default: 0x0000...0000)
+  --version          Safe version (default: 1.3.0)
 
-Example for transaction hashes:
+Examples:
+  # Online transaction hash calculation (trusted by default):
   $0 --network ethereum --address 0x1234...5678 --nonce 42
 
-Example for off-chain message hashes:
+  # Online transaction hash calculation with untrusted endpoint:
+  $0 --network ethereum --address 0x1234...5678 --nonce 42 --untrusted
+
+  # Off-chain message hash calculation:
   $0 --network ethereum --address 0x1234...5678 --message message.txt
 
-Example for raw transaction hash calculation:
-  $0 raw --network ethereum --address 0x1234...5678 --to 0x9876...5432 --value 1000000000000000000 --nonce 42"
+  # Offline transaction hash calculation:
+  $0 --offline --network ethereum --address 0x1234...5678 --to 0x9876...5432 \\
+     --data 0x095e...0001 --value 1000000000000000000 --nonce 42
 
 EOF
     exit 1
 }
-
 # Utility function to list all supported networks.
 list_networks() {
     echo "Supported Networks:"
@@ -192,7 +200,7 @@ print_header() {
 print_field() {
     local label=$1
     local value=$2
-    local empty_line=${3:-false}
+    local empty_line="${3:-false}"
 
     if [[ -t 1 ]] && tput sgr0 >/dev/null 2>&1; then
         # Terminal supports formatting.
@@ -393,7 +401,11 @@ calculate_hashes() {
     # Print the retrieved transaction data.
     print_transaction_data "$address" "$to" "$value" "$data" "$message"
     # Print the ABI-decoded transaction data.
-    print_decoded_data "$data_decoded"
+    if [[ "$data_decoded" == "{}" ]]; then
+        echo "Skipping decoded data, since raw data was passed"
+    else
+        print_decoded_data "$data_decoded"
+    fi
     # Print the results with the same formatting for "Domain hash" and "Message hash" as a Ledger hardware device.
     print_hash_info "$domain_hash" "$message_hash" "$safe_tx_hash"
 }
@@ -403,7 +415,7 @@ validate_network() {
     local network="$1"
     if [[ -z "${API_URLS[$network]:-}" || -z "${CHAIN_IDS[$network]:-}" ]]; then
         echo -e "${BOLD}${RED}Invalid network name: \"${network}\"${RESET}\n" >&2
-        calculate_safe_tx_hashes --list-networks >&2
+        calculate_safe_hashes --list-networks >&2
         exit 1
     fi
 }
@@ -518,23 +530,37 @@ calculate_offchain_message_hashes() {
 #    - Extracts the relevant transaction details from the API response.
 #    - Calls the `calculate_hashes` function to compute and display the results.
 calculate_safe_hashes() {
-    local network="" address="" nonce="" message_file=""
-
-    # Check for raw command first
-    if [[ "$1" == "raw" ]]; then
-        shift
-        handle_raw_transaction "$@"
-        return
+    # Display the help message if no arguments are provided.
+    if [[ $# -eq 0 ]]; then
+        usage
     fi
 
-    # Parse the command line arguments.
+    local network="" address="" nonce="" message_file="" offline=false version="1.3.0" untrusted=false
+    local offline_to="" offline_value="0" offline_data="0x" offline_operation="0"
+    local offline_safe_tx_gas="0" offline_base_gas="0" offline_gas_price="0"
+    local offline_gas_token="0x0000000000000000000000000000000000000000"
+    local offline_refund_receiver="0x0000000000000000000000000000000000000000"
+
+    # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --help) usage ;;
+            --offline) offline=true; shift ;;
+            --untrusted) untrusted=true; shift ;;
             --network) network="$2"; shift 2 ;;
             --address) address="$2"; shift 2 ;;
             --nonce) nonce="$2"; shift 2 ;;
             --message) message_file="$2"; shift 2 ;;
+            --to) offline_to="$2"; shift 2 ;;
+            --value) offline_value="$2"; shift 2 ;;
+            --data) offline_data="$2"; shift 2 ;;
+            --operation) offline_operation="$2"; shift 2 ;;
+            --safe-tx-gas) offline_safe_tx_gas="$2"; shift 2 ;;
+            --base-gas) offline_base_gas="$2"; shift 2 ;;
+            --gas-price) offline_gas_price="$2"; shift 2 ;;
+            --gas-token) offline_gas_token="$2"; shift 2 ;;
+            --refund-receiver) offline_refund_receiver="$2"; shift 2 ;;
+            --version) version="$2"; shift 2 ;;
             --list-networks) list_networks ;;
             *) echo "Unknown option: $1" >&2; usage ;;
         esac
@@ -543,16 +569,16 @@ calculate_safe_hashes() {
     # Validate if the required parameters have the correct format.
     validate_network "$network"
     validate_address "$address"
-
-    # Get the API URL and chain ID for the specified network.
-    local api_url=$(get_api_url "$network")
     local chain_id=$(get_chain_id "$network")
-    local endpoint="${api_url}/api/v1/safes/${address}/multisig-transactions/?nonce=${nonce}"
+    local api_url=""
 
-    # Get the Safe multisig version.
-    local version=$(curl -sf "${api_url}/api/v1/safes/${address}/" | jq -r ".version // \"0.0.0\"")
+    # Only get api_url and version in online mode or for message files
+    if [[ "$offline" != "true" || -n "$message_file" ]]; then
+        api_url=$(get_api_url "$network")
+        version=$(curl -sf "${api_url}/api/v1/safes/${address}/" | jq -r ".version // \"0.0.0\"")
+    fi
 
-    # Calculate the domain and message hashes for off-chain messages.
+    # Handle message file mode first
     if [[ -n "$message_file" ]]; then
         if [[ -n "$nonce" ]]; then
             echo -e "${RED}Error: When calculating off-chain message hashes, do not specify a nonce.${RESET}" >&2
@@ -560,6 +586,33 @@ calculate_safe_hashes() {
         fi
         calculate_offchain_message_hashes "$network" "$chain_id" "$address" "$message_file" "$version"
         exit 0
+    fi
+
+    if [[ "$offline" == true ]]; then
+        handle_offline_mode "$network" "$chain_id" "$address" "$nonce" "$version" \
+            "$offline_to" "$offline_value" "$offline_data" "$offline_operation" \
+            "$offline_safe_tx_gas" "$offline_base_gas" "$offline_gas_price" \
+            "$offline_gas_token" "$offline_refund_receiver"
+    else
+        handle_online_mode "$network" "$chain_id" "$api_url" "$version" \
+            "$address" "$nonce" "$untrusted"
+    fi
+}
+
+handle_online_mode() {
+    # Get the API URL and chain ID for the specified network.
+    local network="$1"
+    local chain_id="$2"
+    local api_url="$3"
+    local version="$4"
+    local address="$5"
+    local nonce="$6"
+    local untrusted="$7"
+
+    local endpoint="${api_url}/api/v1/safes/${address}/multisig-transactions/?nonce=${nonce}"
+
+    if [[ "$untrusted" == "true" ]]; then
+        endpoint="${endpoint}&trusted=false"
     fi
 
     # Validate if the nonce parameter has the correct format.
@@ -647,48 +700,32 @@ EOF
         "$data_decoded" \
         "$version"
 }
-# Utility function to handle raw transaction hash calculation
-handle_raw_transaction() {
-    local network="" address="" nonce=""
-    local raw_to="" raw_value="0" raw_data="0x" raw_operation="0"
-    local raw_safe_tx_gas="0" raw_base_gas="0" raw_gas_price="0"
-    local raw_gas_token="0x0000000000000000000000000000000000000000"
-    local raw_refund_receiver="0x0000000000000000000000000000000000000000"
 
-    # Parse raw command arguments
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --network) network="$2"; shift 2 ;;
-            --address) address="$2"; shift 2 ;;
-            --to) raw_to="$2"; shift 2 ;;
-            --value) raw_value="$2"; shift 2 ;;
-            --data) raw_data="$2"; shift 2 ;;
-            --operation) raw_operation="$2"; shift 2 ;;
-            --safe-tx-gas) raw_safe_tx_gas="$2"; shift 2 ;;
-            --base-gas) raw_base_gas="$2"; shift 2 ;;
-            --gas-price) raw_gas_price="$2"; shift 2 ;;
-            --gas-token) raw_gas_token="$2"; shift 2 ;;
-            --refund-receiver) raw_refund_receiver="$2"; shift 2 ;;
-            --nonce) nonce="$2"; shift 2 ;;
-            *) echo "Unknown option for raw command: $1" >&2; usage ;;
-        esac
-    done
+handle_offline_mode() {
+    local network="$1"
+    local chain_id="$2"
+    local address="$3"
+    local nonce="$4"
+    local version="$5"
+    local offline_to="$6"
+    local offline_value="$7"
+    local offline_data="$8"
+    local offline_operation="$9"
+    local offline_safe_tx_gas="${10}"
+    local offline_base_gas="${11}"
+    local offline_gas_price="${12}"
+    local offline_gas_token="${13}"
+    local offline_refund_receiver="${14}"
 
-    # Validate required parameters
-    if [[ -z "$network" || -z "$address" || -z "$raw_to" || -z "$nonce" ]]; then
-        echo -e "${BOLD}${RED}Error: network, address, to, and nonce are required for raw command${RESET}" >&2
+    if [[ -z "$network" || -z "$address" || -z "$offline_to" || -z "$nonce" ]]; then
+        echo -e "${BOLD}${RED}Error: network, address, to, and nonce are required for offline mode${RESET}" >&2
         usage
     fi
 
     # Validate addresses
-    validate_address "$raw_to"
-    [[ "$raw_gas_token" != "0x0000000000000000000000000000000000000000" ]] && validate_address "$raw_gas_token"
-    [[ "$raw_refund_receiver" != "0x0000000000000000000000000000000000000000" ]] && validate_address "$raw_refund_receiver"
-
-    # Get chain ID and version
-    local chain_id=$(get_chain_id "$network")
-    local api_url=$(get_api_url "$network")
-    local version=$(curl -sf "${api_url}/api/v1/safes/${address}/" | jq -r ".version // \"1.3.0\"")
+    validate_address "$offline_to"
+    [[ "$offline_gas_token" != "0x0000000000000000000000000000000000000000" ]] && validate_address "$offline_gas_token"
+    [[ "$offline_refund_receiver" != "0x0000000000000000000000000000000000000000" ]] && validate_address "$offline_refund_receiver"
 
     # Calculate and display the hashes
     echo "==================================="
@@ -701,18 +738,19 @@ handle_raw_transaction() {
     echo "========================================"
     calculate_hashes "$chain_id" \
         "$address" \
-        "$raw_to" \
-        "$raw_value" \
-        "$raw_data" \
-        "$raw_operation" \
-        "$raw_safe_tx_gas" \
-        "$raw_base_gas" \
-        "$raw_gas_price" \
-        "$raw_gas_token" \
-        "$raw_refund_receiver" \
+        "$offline_to" \
+        "$offline_value" \
+        "$offline_data" \
+        "$offline_operation" \
+        "$offline_safe_tx_gas" \
+        "$offline_base_gas" \
+        "$offline_gas_price" \
+        "$offline_gas_token" \
+        "$offline_refund_receiver" \
         "$nonce" \
-        "\"0x\"" \
+        "{}" \
         "$version"
 }
 
+# Entry point for the script
 calculate_safe_hashes "$@"
