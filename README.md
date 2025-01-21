@@ -20,6 +20,8 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
 - [Getting Started](#getting-started)
   - [Requirements](#requirements)
     - [macOS Users: Upgrading Bash](#macos-users-upgrading-bash)
+  - [Installation](#installation)
+  - [Optional: Make it a CLI tool](#optional-make-it-a-cli-tool)
   - [Quickstart](#quickstart)
     - [Examples to try](#examples-to-try)
 - [Usage - Safe API Transaction Hash Verification](#usage---safe-api-transaction-hash-verification)
@@ -107,6 +109,35 @@ You can verify your Bash version after the installation:
 ```console
 bash --version
 ```
+
+## Installation
+
+```bash
+git clone https://github.com/Cyfrin/safe-tx-hashes
+cd safe-tx-hashes
+```
+
+## Optional: Make it a CLI tool
+
+First, make the script executable if it isn't already:
+
+```bash
+chmod +x safe_hashes.sh
+```
+
+Copy the script to /usr/local/bin (creating a simpler name without the .sh extension):
+
+```bash
+sudo cp safe_hashes.sh /usr/local/bin/safe_hashes
+```
+
+Ensure the script has the proper permissions:
+
+```bash
+sudo chmod 755 /usr/local/bin/safe_hashes
+```
+
+Now you can use the script from anywhere by just typing `safe_hashes`.
 
 ## Quickstart
 
