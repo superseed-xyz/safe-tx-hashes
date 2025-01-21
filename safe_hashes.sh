@@ -128,6 +128,11 @@ declare -A -r CHAIN_IDS=(
     ["zksync"]="324"
 )
 
+version() {
+    echo "safe_hashes 0.0.1"
+    exit 0
+}
+
 # Utility function to display the usage information.
 usage() {
     cat <<EOF
@@ -137,6 +142,7 @@ Usage: $0 [--help] [--list-networks]
        $0 --offline --network <network> --address <address> --nonce <nonce> [OPTIONS]
 
 Options:
+  --version           Display the script version
   --help              Display this help message
   --list-networks     List all supported networks and their chain IDs
   --network <network> Specify the network (required)
@@ -156,7 +162,7 @@ Additional options for offline mode:
   --gas-price        GasPrice (default: 0)
   --gas-token        Gas token address (default: 0x0000...0000)
   --refund-receiver  Refund receiver address (default: 0x0000...0000)
-  --version          Safe version (default: 1.3.0)
+  --safe-version     Safe version (default: 1.3.0)
 
 Examples:
   # Online transaction hash calculation (trusted by default):
@@ -556,6 +562,7 @@ calculate_safe_hashes() {
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            -v|--version) version ;;
             --help) usage ;;
             --offline) offline=true; shift ;;
             --untrusted) untrusted=true; shift ;;
@@ -572,7 +579,7 @@ calculate_safe_hashes() {
             --gas-price) offline_gas_price="$2"; shift 2 ;;
             --gas-token) offline_gas_token="$2"; shift 2 ;;
             --refund-receiver) offline_refund_receiver="$2"; shift 2 ;;
-            --version) version="$2"; shift 2 ;;
+            --safe-version) version="$2"; shift 2 ;;
             --list-networks) list_networks ;;
             *) echo "Unknown option: $1" >&2; usage ;;
         esac
