@@ -19,6 +19,7 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
   - [Supported Networks](#supported-networks)
 - [Getting Started](#getting-started)
   - [Requirements](#requirements)
+    - [Legacy Ledger](#legacy-ledger)
     - [macOS Users: Upgrading Bash](#macos-users-upgrading-bash)
   - [Installation](#installation)
     - [Optional: Make it a CLI tool](#optional-make-it-a-cli-tool)
@@ -75,6 +76,21 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
   - You'll know you have it if you run `bash --version` and see a response like `GNU bash, version 5....`
 
 *If you're using the Safe API features, you'll also need to be connected to the internet*
+
+### Legacy Ledger
+
+If you're using a ledger wallet, you'll also need access to `perl`. Most Linux and MacOS systems come with this pre-installed. If you are not using a Ledger Nano X, you can remove this section of the script:
+
+```bash
+local binary_literal=$(
+    echo -n "${safe_tx_hash#0x}" | xxd -r -p | \
+    perl -pe 's/([^[:print:]]|[\x80-\xff])/sprintf("\\x%02x",ord($1))/ge; s/([^ -~])/sprintf("\\x%02x",ord($1))/ge'
+)
+
+print_header "Legacy Ledger Format"
+print_field "Binary string literal" "$binary_literal"
+```
+
 
 ### macOS Users: Upgrading Bash
 

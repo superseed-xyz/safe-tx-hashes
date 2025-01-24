@@ -252,13 +252,8 @@ print_hash_info() {
     local message_hash=$2
     local safe_tx_hash=$3
     local binary_literal=$(
-        echo -n "${safe_tx_hash#0x}" | xxd -r -p | while read -N1 c; do
-            if [[ $c =~ [[:print:]] ]] && [[ ! $c =~ [[:space:]] ]]; then
-                printf "%s" "$c"
-            else
-                printf "\\x%02x" "'$c" 2>/dev/null
-            fi
-        done
+        echo -n "${safe_tx_hash#0x}" | xxd -r -p | \
+        perl -pe 's/([^[:print:]]|[\x80-\xff])/sprintf("\\x%02x",ord($1))/ge; s/([^ -~])/sprintf("\\x%02x",ord($1))/ge'
     )
 
     print_header "Legacy Ledger Format"
