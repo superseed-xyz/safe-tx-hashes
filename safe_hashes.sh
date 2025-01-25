@@ -138,31 +138,32 @@ usage() {
     cat <<EOF
 Usage: $0 [--help] [--list-networks]
        --network <network> --address <address> --nonce <nonce> [--untrusted]
-       --message <file> 
+       --message <file> print-mst-calldata
        $0 --offline --network <network> --address <address> --nonce <nonce> [OPTIONS]
 
 Options:
-  --version           Display the script version
-  --help              Display this help message
-  --list-networks     List all supported networks and their chain IDs
-  --network <network> Specify the network (required)
-  --address <address> Specify the Safe multisig address (required)
-  --nonce <nonce>     Specify the transaction nonce (required for transaction hashes)
-  --message <file>    Specify the message file (required for off-chain message hashes)
-  --untrusted        Use untrusted endpoint (adds trusted=false parameter to API calls)
-  --offline          Calculate transaction hash offline with custom parameters
+  --version             Display the script version
+  --help                Display this help message
+  --list-networks       List all supported networks and their chain IDs
+  --network <network>   Specify the network (required)
+  --address <address>   Specify the Safe multisig address (required)
+  --nonce <nonce>       Specify the transaction nonce (required for transaction hashes)
+  --message <file>      Specify the message file (required for off-chain message hashes)
+  --untrusted           Use untrusted endpoint (adds trusted=false parameter to API calls)
+  --offline             Calculate transaction hash offline with custom parameters
+  --print-mst-calldata  Print the calldata for the entire multi-sig transaction       
 
 Additional options for offline mode:
-  --to               Target address (required in offline mode)
-  --value            Transaction value in wei (default: 0)
-  --data             Transaction data (default: 0x)
-  --operation        Operation type (default: 0)
-  --safe-tx-gas      SafeTxGas (default: 0)
-  --base-gas         BaseGas (default: 0)
-  --gas-price        GasPrice (default: 0)
-  --gas-token        Gas token address (default: 0x0000...0000)
-  --refund-receiver  Refund receiver address (default: 0x0000...0000)
-  --safe-version     Safe version (default: 1.3.0)
+  --to                  Target address (required in offline mode)
+  --value               Transaction value in wei (default: 0)
+  --data                Transaction data (default: 0x)
+  --operation           Operation type (default: 0)
+  --safe-tx-gas         SafeTxGas (default: 0)
+  --base-gas            BaseGas (default: 0)
+  --gas-price           GasPrice (default: 0)
+  --gas-token           Gas token address (default: 0x0000...0000)
+  --refund-receiver     Refund receiver address (default: 0x0000...0000)
+  --safe-version        Safe version (default: 1.3.0)
 
 Examples:
   # Online transaction hash calculation (trusted by default):
@@ -236,6 +237,44 @@ print_transaction_data() {
     print_field "Value" "$value"
     print_field "Data" "$data"
     print_field "Encoded message" "$message"
+}
+
+print_mst_calldata_data() {
+    local to=$1
+    local value=$2
+    local data=$3
+    local operation=$4
+    local safe_tx_gas=$5
+    local base_gas=$6
+    local gas_price=$7
+    local gas_token=$8
+    local refund_receiver=$9
+    local signatures=${10}
+    local confirmations_required=${11}
+    local confirmations_count=${12}
+
+    print_header "Multi-sig Transaction Calldata Data"
+    print_field "Confirmations count: " "$confirmations_count" 
+    print_field "Required number: " "$confirmations_required"
+
+    if [[ "$confirmations_count" -lt "$confirmations_required" ]]; then
+        echo "Not enough confirmations to print calldata"
+    else 
+        local full_calldata=$(cast calldata "execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)" \
+            "$to" \
+            "$value" \
+            "$data" \
+            "$operation" \
+            "$safe_tx_gas" \
+            "$base_gas" \
+            "$gas_price" \
+            "$gas_token" \
+            "$refund_receiver" \
+            "$signatures")
+        print_field "Full transaction calldata" "$full_calldata"
+        local tx_data_hashed=$(cast keccak "$data")
+        print_field "Transaction calldata hash" "$tx_data_hashed"
+    fi
 }
 
 # Utility function to format the hash (keep `0x` lowercase, rest uppercase).
@@ -413,6 +452,7 @@ calculate_hashes() {
 
     # Print the retrieved transaction data.
     print_transaction_data "$address" "$to" "$value" "$data" "$message"
+
     # Print the ABI-decoded transaction data.
     if [[ "$data_decoded" == "{}" ]]; then
         echo "Skipping decoded data, since raw data was passed"
@@ -422,6 +462,7 @@ calculate_hashes() {
     # Print the results with the same formatting for "Domain hash" and "Message hash" as a Ledger hardware device.
     print_hash_info "$domain_hash" "$message_hash" "$safe_tx_hash"
 }
+
 
 # Utility function to validate the network name.
 validate_network() {
@@ -553,6 +594,7 @@ calculate_safe_hashes() {
     local offline_safe_tx_gas="0" offline_base_gas="0" offline_gas_price="0"
     local offline_gas_token="0x0000000000000000000000000000000000000000"
     local offline_refund_receiver="0x0000000000000000000000000000000000000000"
+    local print_mst_calldata=false
 
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
@@ -560,6 +602,7 @@ calculate_safe_hashes() {
             -v|--version) version ;;
             --help) usage ;;
             --offline) offline=true; shift ;;
+            --print-mst-calldata) print_mst_calldata=true; shift ;;
             --untrusted) untrusted=true; shift ;;
             --network) network="$2"; shift 2 ;;
             --address) address="$2"; shift 2 ;;
@@ -579,6 +622,12 @@ calculate_safe_hashes() {
             *) echo "Unknown option: $1" >&2; usage ;;
         esac
     done
+
+    # Validation
+    if [[ "$offline" == true && "$print_mst_calldata" == true ]]; then
+        echo -e "${RED}Error: The --print-mst-calldata option is not supported in offline mode. Please remove it and try again.${RESET}" >&2
+        exit 1
+    fi
 
     # Validate if the required parameters have the correct format.
     validate_network "$network"
@@ -609,7 +658,7 @@ calculate_safe_hashes() {
             "$offline_gas_token" "$offline_refund_receiver"
     else
         handle_online_mode "$network" "$chain_id" "$api_url" "$version" \
-            "$address" "$nonce" "$untrusted"
+            "$address" "$nonce" "$untrusted" "$print_mst_calldata"
     fi
 }
 
@@ -622,6 +671,7 @@ handle_online_mode() {
     local address="$5"
     local nonce="$6"
     local untrusted="$7"
+    local print_mst_calldata="$8"
 
     local endpoint="${api_url}/api/v1/safes/${address}/multisig-transactions/?nonce=${nonce}"
 
@@ -634,6 +684,10 @@ handle_online_mode() {
 
     # Fetch the transaction data from the API.
     local response=$(curl -sf "$endpoint")
+
+    # For debugging purposes:
+    # echo "Endpoint: $endpoint"
+
     local count=$(echo "$response" | jq -r ".count // \"0\"")
     local idx=0
 
@@ -689,6 +743,9 @@ EOF
     local refund_receiver=$(echo "$response" | jq -r ".results[$idx].refundReceiver // \"0x0000000000000000000000000000000000000000\"")
     local nonce=$(echo "$response" | jq -r ".results[$idx].nonce // \"0\"")
     local data_decoded=$(echo "$response" | jq -r ".results[$idx].dataDecoded // \"0x\"")
+    local signatures=$(echo "$response" | jq -r ".results[$idx].signatures // \"\"")
+    local confirmations_required=$(echo "$response" | jq -r ".results[$idx].confirmationsRequired // \"0\"")
+    local confirmation_count=$(echo "$response" | jq -r ".results[$idx].confirmations | length // \"0\"")
 
     # Calculate and display the hashes.
     echo "==================================="
@@ -712,7 +769,12 @@ EOF
         "$refund_receiver" \
         "$nonce" \
         "$data_decoded" \
-        "$version"
+        "$version" 
+
+    if [[ "$print_mst_calldata" == "true" ]]; then
+        print_mst_calldata_data "$to" "$value" "$data" "$operation" "$safe_tx_gas" "$base_gas" "$gas_price" "$gas_token" "$refund_receiver" "$signatures" "$confirmations_required" "$confirmation_count"
+    fi
+
 }
 
 handle_offline_mode() {
@@ -763,7 +825,7 @@ handle_offline_mode() {
         "$offline_refund_receiver" \
         "$nonce" \
         "{}" \
-        "$version"
+        "$version" 
 }
 
 # Entry point for the script

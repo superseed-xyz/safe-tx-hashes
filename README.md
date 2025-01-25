@@ -32,6 +32,7 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
   - [Safe Transaction Hashes](#safe-transaction-hashes)
   - [Safe Message Hashes](#safe-message-hashes)
 - [Trust Assumptions](#trust-assumptions)
+- [Testing](#testing)
 - [Community-Maintained User Interface Implementations](#community-maintained-user-interface-implementations)
 - [Acknowledgements](#acknowledgements)
 
@@ -389,6 +390,14 @@ Safe message hash: 0x1866b559f56261ada63528391b93a1fe8e2e33baf7cace94fc6b42202d1
    2. [Keystone](https://keyst.one/)
    3. [Cypherock](https://www.cypherock.com/)
    4. [Ledger](https://www.ledger.com/academy/topics/ledgersolutions/ledger-wallets-secure-screen-security-model)
+
+# Testing
+
+As of today, we are trying to keep this repo as minimal as possible, and not use a real testing framework like [bats](https://github.com/bats-core/bats-core). The current test just runs a single offline mode test. We may expand this in the future. 
+
+```
+bash test.sh
+```
 
 # Community-Maintained User Interface Implementations
 
