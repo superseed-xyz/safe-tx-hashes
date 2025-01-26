@@ -134,7 +134,7 @@ bash --version
 ### Curl
 
 ```bash
-curl -L https://raw.githubusercontent.com/cyfrin/safe-tx-hashes/main/install | bash
+curl -L https://raw.githubusercontent.com/cyfrin/safe-tx-hashes/main/install.sh | bash
 ```
 
 ### Source
