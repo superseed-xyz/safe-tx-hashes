@@ -22,7 +22,9 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
     - [Legacy Ledger](#legacy-ledger)
     - [macOS Users: Upgrading Bash](#macos-users-upgrading-bash)
   - [Installation](#installation)
-    - [Optional: Make it a CLI tool](#optional-make-it-a-cli-tool)
+    - [Curl](#curl)
+    - [Source](#source)
+      - [Optional: Make it a CLI tool](#optional-make-it-a-cli-tool)
   - [Quickstart](#quickstart)
     - [Examples to try](#examples-to-try)
 - [Usage - Safe API Transaction Hash Verification](#usage---safe-api-transaction-hash-verification)
@@ -32,6 +34,7 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
   - [Safe Transaction Hashes](#safe-transaction-hashes)
   - [Safe Message Hashes](#safe-message-hashes)
 - [Trust Assumptions](#trust-assumptions)
+- [Testing](#testing)
 - [Community-Maintained User Interface Implementations](#community-maintained-user-interface-implementations)
 - [Acknowledgements](#acknowledgements)
 
@@ -128,12 +131,22 @@ bash --version
 
 ## Installation
 
+### Curl
+
+```bash
+curl -L https://raw.githubusercontent.com/cyfrin/safe-tx-hashes/main/install | bash
+```
+
+### Source
+
+You can run scripts directly from this repository.
+
 ```bash
 git clone https://github.com/Cyfrin/safe-tx-hashes
 cd safe-tx-hashes
 ```
 
-### Optional: Make it a CLI tool
+#### Optional: Make it a CLI tool
 
 First, make the script executable if it isn't already:
 
@@ -389,6 +402,14 @@ Safe message hash: 0x1866b559f56261ada63528391b93a1fe8e2e33baf7cace94fc6b42202d1
    2. [Keystone](https://keyst.one/)
    3. [Cypherock](https://www.cypherock.com/)
    4. [Ledger](https://www.ledger.com/academy/topics/ledgersolutions/ledger-wallets-secure-screen-security-model)
+
+# Testing
+
+As of today, we are trying to keep this repo as minimal as possible, and not use a real testing framework like [bats](https://github.com/bats-core/bats-core). The current test just runs a single offline mode test. We may expand this in the future. 
+
+```
+bash test.sh
+```
 
 # Community-Maintained User Interface Implementations
 
