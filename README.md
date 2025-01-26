@@ -22,7 +22,9 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
     - [Legacy Ledger](#legacy-ledger)
     - [macOS Users: Upgrading Bash](#macos-users-upgrading-bash)
   - [Installation](#installation)
-    - [Optional: Make it a CLI tool](#optional-make-it-a-cli-tool)
+    - [Curl](#curl)
+    - [Source](#source)
+      - [Optional: Make it a CLI tool](#optional-make-it-a-cli-tool)
   - [Quickstart](#quickstart)
     - [Examples to try](#examples-to-try)
 - [Usage - Safe API Transaction Hash Verification](#usage---safe-api-transaction-hash-verification)
@@ -129,12 +131,22 @@ bash --version
 
 ## Installation
 
+### Curl
+
+```bash
+curl -L https://raw.githubusercontent.com/cyfrin/safe-tx-hashes/main/install | bash
+```
+
+### Source
+
+You can run scripts directly from this repository.
+
 ```bash
 git clone https://github.com/Cyfrin/safe-tx-hashes
 cd safe-tx-hashes
 ```
 
-### Optional: Make it a CLI tool
+#### Optional: Make it a CLI tool
 
 First, make the script executable if it isn't already:
 
