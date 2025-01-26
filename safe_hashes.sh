@@ -129,7 +129,7 @@ declare -A -r CHAIN_IDS=(
 )
 
 version() {
-    echo "safe_hashes 0.0.3"
+    echo "safe_hashes 0.1.0"
     exit 0
 }
 
