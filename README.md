@@ -2,6 +2,8 @@
 
 # Safe Multisig Transaction Hashes <!-- omit from toc -->
 
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](https://www.gnu.org/licenses/agpl-3.0)
+
 ```console
 |)0/\/'T TR|\_|5T, \/3R1FY! 🫡
 ```
