@@ -129,7 +129,7 @@ declare -A -r CHAIN_IDS=(
 )
 
 version() {
-    echo "safe_hashes 0.1.0"
+    echo "safe_hashes 0.1.1"
     exit 0
 }
 
@@ -743,9 +743,18 @@ EOF
     local refund_receiver=$(echo "$response" | jq -r ".results[$idx].refundReceiver // \"0x0000000000000000000000000000000000000000\"")
     local nonce=$(echo "$response" | jq -r ".results[$idx].nonce // \"0\"")
     local data_decoded=$(echo "$response" | jq -r ".results[$idx].dataDecoded // \"0x\"")
-    local signatures=$(echo "$response" | jq -r ".results[$idx].signatures // \"\"")
     local confirmations_required=$(echo "$response" | jq -r ".results[$idx].confirmationsRequired // \"0\"")
     local confirmation_count=$(echo "$response" | jq -r ".results[$idx].confirmations | length // \"0\"")
+
+    # Extract signatures from confirmations array and concatenate them
+    local signatures=$(echo "$response" | jq -r ".results[$idx].confirmations[].signature" | paste -sd '' -)
+
+    # If signatures is empty, use 0x
+    if [[ -z "$signatures" ]]; then
+        signatures="0x"
+    elif [[ ! "$signatures" =~ ^0x ]]; then
+        signatures="0x${signatures}"
+    fi
 
     # Calculate and display the hashes.
     echo "==================================="
