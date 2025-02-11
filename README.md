@@ -125,6 +125,8 @@ sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
 chsh -s /usr/local/bin/bash
 ```
 
+Then restart your terminal.
+
 You can verify your Bash version after the installation:
 
 ```console
