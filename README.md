@@ -172,6 +172,20 @@ sudo chmod 755 /usr/local/bin/safe_hashes
 
 Now you can use the script from anywhere by just typing `safe_hashes`.
 
+## Docker
+
+### Build
+
+```console
+docker build -t safe_hashes .
+```
+
+### Run
+
+```console
+docker run -it safe_hashes  [--help] [--list-networks] --network <network> --address <address> --nonce <nonce> --message <file>
+```
+
 ## Quickstart
 
 ```console
