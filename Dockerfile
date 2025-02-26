@@ -1,6 +1,19 @@
-FROM ghcr.io/foundry-rs/foundry:stable AS foundry
+# Base debian build (latest).
+FROM mcr.microsoft.com/vscode/devcontainers/base:debian
 
-FROM debian:12-slim
+# Update packages.
+RUN apt-get update
+
+# Set the default shell to zsh
+ENV SHELL=/usr/bin/zsh
+
+# Running everything under zsh
+SHELL ["/usr/bin/zsh", "-c"]
+
+# Dropping privileges
+USER vscode
+
+FROM ghcr.io/foundry-rs/foundry:stable AS foundry
 
 RUN apt-get update && \
   apt-get install -y curl jq git xxd 
