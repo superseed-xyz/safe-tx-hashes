@@ -27,6 +27,10 @@ This Bash [script](./safe_hashes.sh) calculates the Safe transaction hashes by r
     - [Curl](#curl)
     - [Source](#source)
       - [Optional: Make it a CLI tool](#optional-make-it-a-cli-tool)
+  - [Docker](#docker)
+    - [Build](#build)
+    - [Run](#run)
+  - [Dev Container](#dev-container)
   - [Quickstart](#quickstart)
     - [Examples to try](#examples-to-try)
 - [Usage - Safe API Transaction Hash Verification](#usage---safe-api-transaction-hash-verification)
@@ -171,6 +175,34 @@ sudo chmod 755 /usr/local/bin/safe_hashes
 ```
 
 Now you can use the script from anywhere by just typing `safe_hashes`.
+
+## Docker
+
+### Build
+
+```console
+docker build -t safe_hashes .
+```
+
+### Run
+
+```console
+docker run -it safe_hashes  [--help] [--list-networks] --network <network> --address <address> --nonce <nonce> --message <file>
+```
+
+## Dev Container
+
+Optionally, to run this in a dev container in VSCode, first install the [dev containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers), then use the command pallete after cloning and run:
+
+```
+> Dev Containers: Reopen in Container
+```
+
+And to use the script, you can run:
+
+```console
+./safe_hashes.sh --help
+```
 
 ## Quickstart
 
