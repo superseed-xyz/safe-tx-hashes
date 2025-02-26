@@ -452,8 +452,8 @@ bash test.sh
 > [!IMPORTANT]
 > Please be aware that user interface implementations may introduce additional trust assumptions, such as relying on `npm` dependencies that have not undergone thorough review. Always verify and cross-reference with the main [script](./safe_hashes.sh).
 
-- [`safehashpreview.com`](https://www.safehashpreview.com):
-  - Code: [`josepchetrit12/safe-tx-hashes-util`](https://github.com/josepchetrit12/safe-tx-hashes-util)
+- [`safeutils.openzeppelin.com`](https://safeutils.openzeppelin.com):
+  - Code: [`josepchetrit12/safe-tx-hashes-util`](https://github.com/OpenZeppelin/safe-utils)
   - Authors: [`josepchetrit12`](https://github.com/josepchetrit12), [`xaler5`](https://github.com/xaler5)
 
 # Acknowledgements
