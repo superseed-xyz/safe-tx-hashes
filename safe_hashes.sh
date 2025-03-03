@@ -151,7 +151,7 @@ Options:
   --message <file>      Specify the message file (required for off-chain message hashes)
   --untrusted           Use untrusted endpoint (adds trusted=false parameter to API calls)
   --offline             Calculate transaction hash offline with custom parameters
-  --print-mst-calldata  Print the calldata for the entire multi-sig transaction       
+  --print-mst-calldata  Print the calldata for the entire multi-sig transaction
 
 Additional options for offline mode:
   --to                  Target address (required in offline mode)
@@ -254,12 +254,12 @@ print_mst_calldata_data() {
     local confirmations_count=${12}
 
     print_header "Multi-sig Transaction Calldata Data"
-    print_field "Confirmations count: " "$confirmations_count" 
+    print_field "Confirmations count: " "$confirmations_count"
     print_field "Required number: " "$confirmations_required"
 
     if [[ "$confirmations_count" -lt "$confirmations_required" ]]; then
         echo "Not enough confirmations to print calldata"
-    else 
+    else
         local full_calldata=$(cast calldata "execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)" \
             "$to" \
             "$value" \
@@ -638,7 +638,9 @@ calculate_safe_hashes() {
     # Only get api_url and version in online mode or for message files
     if [[ "$offline" != "true" || -n "$message_file" ]]; then
         api_url=$(get_api_url "$network")
+        echo "${api_url}/api/v1/safes/${address}/"
         version=$(curl -sf "${api_url}/api/v1/safes/${address}/" | jq -r ".version // \"0.0.0\"")
+        echo $version
     fi
 
     # Handle message file mode first
@@ -650,6 +652,8 @@ calculate_safe_hashes() {
         calculate_offchain_message_hashes "$network" "$chain_id" "$address" "$message_file" "$version"
         exit 0
     fi
+
+
 
     if [[ "$offline" == true ]]; then
         handle_offline_mode "$network" "$chain_id" "$address" "$nonce" "$version" \
@@ -778,7 +782,7 @@ EOF
         "$refund_receiver" \
         "$nonce" \
         "$data_decoded" \
-        "$version" 
+        "$version"
 
     if [[ "$print_mst_calldata" == "true" ]]; then
         print_mst_calldata_data "$to" "$value" "$data" "$operation" "$safe_tx_gas" "$base_gas" "$gas_price" "$gas_token" "$refund_receiver" "$signatures" "$confirmations_required" "$confirmation_count"
@@ -834,7 +838,7 @@ handle_offline_mode() {
         "$offline_refund_receiver" \
         "$nonce" \
         "{}" \
-        "$version" 
+        "$version"
 }
 
 # Entry point for the script
