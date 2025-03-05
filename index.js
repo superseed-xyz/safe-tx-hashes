@@ -1,9 +1,12 @@
 const express = require('express');
 const { z } = require('zod');
 const { exec } = require('child_process');
+const cors = require('cors');
 
 const app = express();
 const port = 3000;
+
+app.use(cors());
 
 function formatScriptOutput(output) {
     const lines = output.split('\n').filter(line => line.trim() !== '');
